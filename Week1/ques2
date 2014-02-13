@@ -1,0 +1,159 @@
+%load workspace%
+load('H:\Financial Econometrics\question1.mat')
+
+% descriptive statistics for axp simple returns including sample mean,
+% standard deviation, min, max, skewness and excess kurtosis %
+%mean%
+average_axp = mean (d3stockperaxp)
+%standard deviation%
+std_axp = std (d3stockperaxp)
+%minimun%
+min_axp = min (d3stockperaxp)
+%maximum%
+max_axp = max (d3stockperaxp)
+%skewness%
+skewness_axp = skewness (d3stockperaxp)
+%excess kurtosis%
+excess_kurtosis_axp = kurtosis (d3stockperaxp)-3
+
+% descriptive statistics for cat simple returns including sample mean,
+% standard deviation, min, max, skewness and excess kurtosis %
+%mean%
+average_cat = mean (d3stockpercat)
+%standard deviation%
+std_cat = std (d3stockpercat)
+%minimun%
+min_cat = min (d3stockpercat)
+%maximum%
+max_cat = max (d3stockpercat)
+%skewness%
+skewness_cat = skewness (d3stockpercat)
+%excess kurtosis%
+excess_kurtosis_cat = kurtosis (d3stockpercat)-3
+
+% descriptive statistics for subx simple returns including sample mean,
+% standard deviation, min, max, skewness and excess kurtosis %
+%mean%
+average_sbux = mean (d3stockpersbux)
+%standard deviation%
+std_sbux = std (d3stockpersbux)
+%minimun%
+min_sbux = min (d3stockpersbux)
+%maximum%
+max_sbux = max (d3stockpersbux)
+%skewness%
+skewness_sbux = skewness (d3stockpersbux)
+%excess kurtosis%
+excess_kurtosis_sbux = kurtosis (d3stockpersbux)-3
+
+% plot simple returns for for axp on the Y axis and date on the X
+% axis %
+plot (d3stockperaxp)
+% mark your axes %
+set(gca,'XTick',1:252:2519)
+set(gca,'XTickLabel', 1994:1:2003)
+title('Simple Return for Axp from 1994 to 2003' )
+xlabel('Year')
+ylabel('%Return')
+
+
+% plot simple returns for for cat on the Y axis and date on the X
+% axis %
+plot (d3stockpercat)
+% mark your axes %
+set(gca,'XTick',1:252:2519)
+set(gca,'XTickLabel', 1994:1:2003)
+title('Simple Return for Cat from 1994 to 2003' )
+xlabel('Year')
+ylabel('%Return')
+
+
+% plot simple returns for for sbux on the Y axis and date on the X
+% axis %
+plot (d3stockpersbux)
+% mark your horizontal axis %
+set(gca,'XTick',1:252:2519)
+set(gca,'XTickLabel', 1994:1:2003)
+title('Simple Return for Sbux from 1994 to 2003' )
+xlabel('Year')
+ylabel('%Returns')
+
+
+
+% descriptive statistics for axp log returns including sample mean,
+% standard deviation, min, max, skewness and excess kurtosis %
+%mean%
+average_logaxp = mean (logd3stockperaxp)
+%standard deviation%
+std_logaxp = std (logd3stockperaxp)
+%minimun%
+min_logaxp = min (logd3stockperaxp)
+%maximum%
+max_logaxp = max (logd3stockperaxp)
+%skewness%
+skewness_logaxp = skewness (logd3stockperaxp)
+%excess kurtosis%
+excess_kurtosis_logaxp = kurtosis (logd3stockperaxp)-3
+
+% descriptive statistics for cat log returns including sample mean,
+% standard deviation, min, max, skewness and excess kurtosis %
+%mean%
+average_logcat = mean (logd3stockpercat)
+%standard deviation%
+std_logcat = std (d3stockpercat)
+%minimun%
+min_logcat = min (logd3stockpercat)
+%maximum%
+max_logcat = max (logd3stockpercat)
+%skewness%
+skewness_logcat = skewness (logd3stockpercat)
+%excess kurtosis%
+excess_kurtosis_logcat = kurtosis (logd3stockpercat)-3
+
+% descriptive statistics for subx log returns including sample mean,
+% standard deviation, min, max, skewness and excess kurtosis %
+%mean%
+average_logsbux = mean (logd3stockpersbux)
+%standard deviation%
+std_logsbux = std (logd3stockpersbux)
+%minimun%
+min_logsbux = min (logd3stockpersbux)
+%maximum%
+max_logsbux = max (logd3stockpersbux)
+%skewness%
+skewness_logsbux = skewness (logd3stockpersbux)
+%excess kurtosis%
+excess_kurtosis_logsbux = kurtosis (logd3stockpersbux)-3
+
+% plot log returns for for axp on the Y axis and date on the X
+% axis %
+plot (logd3stockperaxp)
+% mark your axes %
+set(gca,'XTick',1:252:2519)
+set(gca,'XTickLabel', 1994:1:2003)
+title('Log Return for Axp from 1994 to 2003')
+xlabel('Year')
+ylabel('%Return')
+
+
+% plot log returns for for cat on the Y axis and date on the X
+% axis %
+plot (logd3stockpercat)
+% mark your axes %
+set(gca,'XTick',1:252:2519)
+set(gca,'XTickLabel', 1994:1:2003)
+title('Log Return for Cat from 1994 to 2003' )
+xlabel('Year')
+ylabel('%Return')
+
+% plot simple returns for for sbux on the Y axis and date on the X
+% axis %
+plot (logd3stockpersbux)
+% mark your horizontal axis %
+set(gca,'XTick',1:252:2519)
+set(gca,'XTickLabel', 1994:1:2003)
+title('Log Return for Sbux from 1994 to 2003' )
+xlabel('Year')
+ylabel('%Return')
+
+%end%
