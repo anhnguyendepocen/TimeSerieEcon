@@ -1,0 +1,33 @@
+%Problem set 3 problem 4%
+
+clear;
+clear all;
+%Set the number of obs%
+n=5000000;
+%Create a vector of eps%
+eps=[zeros(1,1);randn(n,1)];
+%Create a vector of sigma_2_1;
+sigma_2_1=zeros(n+1,1);
+for i=2:n+1;
+    sigma_2_1(i,:)=1+0.8*sigma_2_1(i-1,:)*(eps(i-1,:))^2+0.1*sigma_2_1(i-1,:);
+end;
+a_1=(sqrt(sigma_2_1)).*eps;
+%Create a vector of sigma_2_2;
+sigma_2_2=zeros(n+1,1);
+for i=2:n+1;
+    sigma_2_2(i,:)=1+0.1*sigma_2_2(i-1,:)*(eps(i-1,:))^2+0.8*sigma_2_2(i-1,:);
+end;
+a_2=(sqrt(sigma_2_2)).*eps;
+%Obtain a(t) squared;
+a=[a_1(102:n+1,1),a_2(102:n+1,1)];
+a_sq=a.^2;
+%Graph the two series;
+figure(1);
+plot(a_sq(:,1),'r--');
+hold on
+plot(a_sq(:,2),'k');
+h = legend('first series','second series',2);
+xlabel('Observation Number');
+ylabel('Values of a squared');
+title('Graph of a squared');
+hold off
