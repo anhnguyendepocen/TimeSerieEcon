@@ -1,0 +1,21 @@
+% GARCH(2,2) - conditional likelihood (under normality of white noise) 
+% T - sample size.
+
+function [lnf, sigma2] = garch_condlh_norm22(theta, a_t);
+
+tmp=size(a_t);
+T = tmp(1,1);
+
+one = ones(1,T-2);
+sigma2 = zeros(T,1); 
+sigma2(1:2) = cov(a_t); % making starting values equal to unconditional variance
+
+for i=3:T
+    sigma2(i,1) = theta(1) + theta(2)*a_t(i-1)^2 + theta(3)*a_t(i-2)^2 + theta(4)*sigma2(i-1) + theta(5)*sigma2(i-2); 
+end;
+
+eps = a_t(3:T)./sqrt(sigma2(3:T));
+
+lnf_max = -T/2*(log(2*pi)) - 0.5*(one*log(sigma2(3:T))) - one*(0.5*eps.^2);
+
+lnf = -lnf_max; 
