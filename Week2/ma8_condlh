@@ -1,0 +1,29 @@
+% MA(q) conditional likelihood
+% order of MA(8) model
+% theta - vector of parameters (q+2)x1, where theta(1) = theta_0 and theta(q+2) = sigma^2; 
+% T= - sample size.
+
+function [lnf, epsilon1] = ma_condlh(theta, r, q);
+
+load('F:\Financial Econometrics\Homework2\m_decile1510.dat');
+
+T=528;
+q=8;
+
+r=m_decile1510(:,3);
+
+tmp=size(r);
+T = tmp(1,1);
+
+epsilon = zeros(T+q,1);
+one = ones(1,T);
+
+for i=(q+1):(T+q)
+    epsilon(i,1) = (r(i-q)-theta(1)) + theta(2)*epsilon(i-1) + theta(3)*epsilon(i-8);
+end;
+
+epsilon1 = epsilon((q+1):(T+q),1);
+
+lnf_max = -T/2*(log(2*pi) + log(theta(4))) - (one*(epsilon((q+1):(T+q)).^2))/(2*theta(4));
+
+lnf = -lnf_max; 
