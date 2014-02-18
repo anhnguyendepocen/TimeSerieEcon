@@ -1,0 +1,52 @@
+% ACF - Sample auto-correlation function
+% data - data; 
+% L - maximum auto-correlation order
+% m, (1xdim_m) - auto-correlation order for which Ljung and Box statistic, Q, is computed
+% df - number of degrees of freedom used to find the p-value correspoding 
+% to the value of Ljung and Box statistic
+
+function [rho, Q, p_value] = acf(data, L, m, df);
+
+tmp=size(data);
+T = tmp(1,1);
+
+r_m = mean(data);
+den = (data - r_m)'*(data - r_m); %denominator in (2.2), Tsay (2002), p. 24 
+
+ind = zeros(L+1,1);
+rho = zeros(L+1,1);
+rho(1,1) = 1;
+
+for i=1:L
+    r = data((1+i):T,1);    %reserve the first "i" observations to form r_t
+    r_i = data(1:(T-i),1);   %reserve the last "i" observations to form r_{t-i}
+    num = (r - r_m)'*(r_i - r_m);   %numerator in formula 2.2 in Tsay (2002), p. 24 
+    rho(i+1) = num/den;
+    ind(i) = i-1;
+end;
+
+ind(L+1,1) = L;
+
+%figure(1)
+bar(ind,rho,0.5)
+hold on 
+plot (ind, 2/sqrt(T))
+plot (ind, -2/sqrt(T))
+hold off
+title('Sample Autocorrelation Function')
+xlabel('lag')
+ylabel('acf')
+
+tmp1 = size(m);
+dim_m = tmp1(1,2);
+Q = zeros(1,dim_m);
+p_value = zeros(1,dim_m);
+for k = 1:dim_m
+    tmp = zeros(m(k),1);
+    one = ones(m(k),1);
+    for j=2:(m(k)+1)
+        tmp(j-1) = rho(j)^2/(T-j);        
+    end;
+    Q(k) = T*(T+2)*(tmp'*one);  %Ljung-Box statistic, (2.3), Tsay (2002), p. 25
+    p_value(k) = 1 - chi2cdf(Q(k), df(k));
+end; 
