@@ -1,0 +1,125 @@
+%ECON 8780
+%Homework 4
+%Question 3
+
+clear all;
+clc;
+
+load('mmm9912_adur.dat');
+
+x = mmm9912_adur(:,1);
+
+
+tmp=size(x);
+T = tmp(1,1);
+
+avgdur = zeros(40,1);
+
+for j = 1:42
+    for i = 1:40
+        avgdur(i) = avgdur(i)+x((i-1)*40+j);
+    end
+end
+avgdur = avgdur/42;
+
+figure(1)
+plot(avgdur)
+set(gca,'XTick',0:10:40)
+set(gca,'XTickLabel', 0:10:40)
+title('Average adjusted duration in 10 minute intervals in Dec 1999, 3M')
+xlabel('10-minute intervals')
+ylabel('Average adjusted duration')
+
+%EACD
+theta0 = [0.2;0.1;0.6;1;1];
+LB = [0.001;0.001;0.001;1;1];
+UB = [inf;inf;inf;1;1];
+theta_EACD = fminsearchbnd(@gacd_condlh11, theta0,LB,UB,optimset('TolX',1e-9), x)
+
+[lnf, EACD_psi,E_EACD] = gacd_condlh11(theta_EACD, x);
+
+
+L = 10; m = L; df = m;
+x1 = x./EACD_psi;
+figure(2)
+subplot(2,1,1)
+[rho_eps, Q_eps, p_value_eps] = acf(x1, L, m, df);
+Q_eps
+p_value_eps
+title('ACF of (x/\psi); EACD')
+subplot(2,1,2)
+[rho_eps, Q_eps, p_value_eps] = acf(x1.^2, L, m, df);
+Q_eps
+p_value_eps
+title('ACF of (x/\psi)^2; EACD')
+
+
+
+%WACD
+theta0 = [0.8;0.064;0.885;0.879;1];
+LB = [0.001;0.001;0.001;0;1];
+UB = [inf;inf;inf;inf;1];
+theta_WACD = fminsearchbnd(@gacd_condlh11, theta0,LB,UB,optimset('TolX',1e-9), x)
+[lnf, WACD_psi,E_WACD] = gacd_condlh11(theta_WACD, x);
+
+L = 10; m = L; df = m;
+x2 = x./WACD_psi;
+figure(3)
+subplot(2,1,1)
+[rho_eps, Q_eps, p_value_eps] = acf(x2, L, m, df);
+Q_eps
+p_value_eps
+title('ACF of (x/\psi) ; WACD')
+subplot(2,1,2)
+[rho_eps, Q_eps, p_value_eps] = acf(x2.^2, L, m, df);
+Q_eps
+p_value_eps
+title('ACF of (x/\psi)^2; WACD')
+
+%GACD
+theta0 = [0.169;0.064;0.885;0.5;0.5];
+LB = [0.01;-inf;-inf;0;0];
+UB = [inf;1;1;inf;inf];
+theta_GACD = fminsearchbnd(@gacd_condlh11, theta0,LB,UB,optimset('TolX',1e-9), x)
+[lnf, GACD_psi,E_GACD] = gacd_condlh11(theta_GACD, x);
+
+x3 = x./GACD_psi;
+
+L = 10; m = L; df = m;
+figure(4)
+subplot(2,1,1)
+[rho_eps, Q_eps, p_value_eps] = acf(x3, L, m, df);
+Q_eps
+p_value_eps
+title('ACF of (x/\psi); GACD')
+subplot(2,1,2)
+[rho_eps, Q_eps, p_value_eps] = acf(x3.^2, L, m, df);
+Q_eps
+p_value_eps
+title('ACF of (x/\psi)^2; GACD')
+
+figure(5)
+subplot(2,2,1)
+plot(x)
+set(gca,'XTick',1:250:T)
+set(gca,'XTickLabel', 0:250:T)
+title('Time plot of adjusted durations in Dec 1999, 3M')
+xlabel('sequence')
+subplot(2,2,2)
+plot(x./EACD_psi)
+set(gca,'XTick',1:250:T)
+set(gca,'XTickLabel', 0:250:T)
+title('Time plot of (x/\psi) for the EACD(1,1) model')
+xlabel('sequence')
+subplot(2,2,3)
+plot(x2)
+set(gca,'XTick',1:250:T)
+set(gca,'XTickLabel', 0:250:T)
+title('Time plot of (x/\psi) for the WACD(1,1) model')
+xlabel('sequence')
+subplot(2,2,4)
+plot(x3)
+set(gca,'XTick',1:250:T)
+set(gca,'XTickLabel', 0:250:T)
+title('Time plot of (x/\psi) for the GACD(1,1) model')
+xlabel('sequence')
