@@ -1,0 +1,26 @@
+% ARCH(m) conditional likelihood  
+% conditional mean is a constant, theta(1)
+% theta - vector of parameters (q+2)x1, where theta(1) = theta_0 and theta(q+2) = sigma^2; 
+% T - sample size.
+
+function [lnf, eps] = arch_condlh1(theta, r, m);
+
+tmp=size(r);
+T = tmp(1,1);
+
+epsilon = zeros(T,1);
+one = ones(1,T-m);
+sigma2 = zeros(T,1); 
+
+epsilon(1:m) = r(1:m) - theta(1); 
+for i=(m+1):(T)
+    epsilon(i,1) = (r(i-m)-theta(1));
+    sigma2(i,1) = theta(2) + ((m+2)>3)*theta(3:(m+2),1)'*flipud(epsilon((i-m):(i-1),1).^2) + ((m+2)==3)*theta(3)*epsilon(i-1)^2;
+    %sigma2(i,1) = theta(2) + theta(3)*epsilon(i-1)^2 + theta(4)*epsilon(i-2)^2 + theta(5)*epsilon(i-3)^2;
+end;
+
+eps = epsilon((m+1):(T))./sqrt(sigma2((m+1):(T)));
+
+lnf_max = -T/2*(log(2*pi)) - 0.5*(one*log(sigma2((m+1):T))) - one*((epsilon((m+1):(T)).^2)./(2*sigma2((m+1):T)));
+
+lnf = -lnf_max; 
