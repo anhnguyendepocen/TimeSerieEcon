@@ -1,0 +1,65 @@
+
+%AR(8) estimation for decile_5 hw2, 2.4
+
+clear;
+clear all;
+load('F:\Financial Econometrics\homework2\m_decile1510.dat');
+
+m_decile_5=m_decile1510(:,3);
+
+tmp=size(m_decile_5);
+
+p = [8];
+
+T=528;
+
+for i=1
+    r_t = m_decile_5(1+p(i):T,1);
+    r_1 = zeros((T-p(i)),p(i));
+
+    for j=1:p(i)
+         r_1(:,j) = m_decile_5((1+p(i)-j):(T-j),1); % create "i" regressors (lagged returns)
+    end;
+
+    x = [ones(T-p(i), 1) r_1];
+    phi = inv(x'*x)*x'*r_t;  % estimation with OLS regression or, equivalently, with conditional maximum likelihood
+    eps = r_t - x*phi;  % OLS residuals
+    
+    % standard errors are slightly different for OLS and conditional MLE
+    % OLS
+    sigma_eps_ols =((eps'*eps)/(T-2*p(i)-1))^0.5;  % -2p-1 accounts for reduction in sample size and the number of estimated paremeters
+    phi_var_cov_ols = (sigma_eps_ols^2)*inv(x'*x);     % var-cov matrix of regression coefficients
+    phi_std_ols = (diag(phi_var_cov_ols)).^0.5;       % standard errors of regression coefficients
+    t_stat_ols = phi./phi_std_ols; 
+    
+    % MLE
+    sigma_eps =((eps'*eps)/(T-p(i)))^0.5;  % -p accounts for reduction in sample size 
+    phi_var_cov = (sigma_eps^2)*inv(x'*x);     % var-cov matrix of regression coefficients
+    phi_std = (diag(phi_var_cov)).^0.5;       % standard errors of regression coefficients
+    t_stat = phi./phi_std; 
+    
+    disp(' -----------------------')
+    disp(' AR process of 8') 
+    disp(p(i))
+    disp(' Estimation results - coefficients, standard errors and t-statistics:')
+    disp(' -----------------------')
+    est_results = [phi      phi_std     t_stat]
+
+    % Plot ACF of residuals
+
+    L_cor = 12;  % maximum acf order
+    m = L_cor;
+    df = L_cor - p(i);  % number of df = maximum autocorrelation order tested - # of AR coefficients
+    [rho_eps, Q_eps, p_value_eps] = acf(eps, L_cor, m, df);
+    Q_eps 
+    p_value_eps
+    
+    figure(1)
+    [rho_eps, Q_eps, p_value_eps] = acf(eps, L_cor, m, df);
+    title('ACF of Residuals for AR(8)')
+    disp(' Diagnostics - Are residuals autocorrelated?')
+    disp(' -----------------------')
+    Q_eps 
+    p_value_eps
+    
+end;
