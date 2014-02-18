@@ -1,0 +1,25 @@
+%ECON 8780
+%Homework 4
+%Question 3
+
+function [lnf, psi,E] = gacd_condlh11(theta,x);
+
+tmp=size(x);
+T = tmp(1,1);
+alpha = theta(4);
+kappa = theta(5);
+one = ones(1, T);
+
+psi = zeros(T,1);
+psi(1) = mean(x);
+
+for i = 2:T
+	psi(i) = theta(1)+theta(2)*x(i-1)+theta(3)*psi(i-1);
+end;
+
+eps = x./psi;
+lamda = gamma(kappa)/gamma(kappa+1/alpha);
+
+lnf_max = (T)*log(alpha/gamma(kappa)) + (kappa*alpha -1)*one*log(x) - kappa*alpha*one*log(lamda*psi) - one*((eps/lamda).^alpha);
+E = psi(1);
+lnf = -lnf_max;
