@@ -1,0 +1,58 @@
+% MA(8) model estimation
+
+clear;
+clear all;
+load('F:\Financial Econometrics\Homework2\m_decile1510.dat')
+
+m_decile5=m_decile1510(:,3);
+tmp = size(m_decile5);
+T = tmp(1,1);
+
+L = 3;   %forecasting horizon
+
+q = 8;    % order of MA(q) model
+
+% leave out the last L observations of the sample and estimate MA(8) model 
+
+% starting values
+
+theta0 = [0.1; 0.1; 0.1; 0.1];
+
+% use fminsearch procedure from the MATLAB optimization tool-box to
+% minimize minus log-likelihood function "ma8_condlh". This program will
+% call the file "ma8_condlh.m" saved in the same directory.
+
+[theta,fval,exitflag,output] = fminsearch(@ma8_condlh, theta0, [], m_decile5(1:(T-L)), q)
+
+
+% call ma8_condlh again (now plugging in the estimates of parameters) 
+% to retrieve fitted residuals r
+[lnh, epsilon] = ma8_condlh(theta, m_decile5, q);
+
+r_hat = zeros(L,1);  % forecasted values
+var_eh = zeros(L,1); 
+
+epsilon1 = [epsilon(1:(T-L),1);zeros(L,1)];
+
+i = 1;
+while (i <= q) & (i <= L)
+    r_hat(i) = theta(1) - theta(2)*epsilon1(T-L-1+i) - theta(3)*epsilon1(T-L-3+i);
+    var_eh(i) = theta(4)*(1 + (i>1)*theta(2)^2 + (i>q)*theta(3)^2);  % the last term in this sum is redundant
+    i = i+1; 
+end;
+
+if L > q
+    r_hat((q+1):L,1) = theta(1);
+    var_eh((q+1):L,1) = theta(4)*(1 + theta(2)^2 + theta(3)^2);
+end;
+
+
+figure(1)
+plot((T - 14):1:T, m_decile5((T - 14):T, 1), '-*', (T - L+1):1:T, r_hat, 'ok', (T - L):1:T, [m_decile5(T-L) r_hat'], '-r');
+h = legend('observed','forecasted',2);
+hold on
+plot((T - L):1:T, [m_decile5(T-L) 2*sqrt(var_eh)'], '.-.b', (T - L):1:T, [m_decile5(T-L)  -2*sqrt(var_eh)'], '.-.b')
+hold off
+title('1 to 3 step ahead forecasted mdecile 5  (MA(8) model)')
+xlabel('Observation Number')
+ylabel('Simple Return of mdecile5')
