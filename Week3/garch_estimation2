@@ -1,0 +1,42 @@
+clear
+clear all
+
+load('h:\teach_fe\data\ch3\m_ibmspln.dat')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% demean the data a_t = r_t - mu_t; here we assume no serial correlation in 
+% retuns, so mu_t=mu
+
+% in this example data is demeaned before conditional volatility model is 
+% estimated, as in a two-pass estimation method described in section 3.5.2
+% p. 121 of Tsay (2005)
+
+a_sp = m_ibmspln(:,2) - mean(m_ibmspln(:,2));
+
+a_ibm = m_ibmspln(:,1) - mean(m_ibmspln(:,1));
+
+tmp = size(m_ibmspln);
+T = tmp(1,1);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% starting values for the parameters %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+theta0 = [0.1; 0.1; 0.1];             
+
+%estimate garch(2,1)
+
+theta = fminsearch(@garch_condlh_norm21, theta0, optimset('TolX',1e-9), a_sp);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% you can can your GARCH(P,Q) estimation results with those provided by 
+%ugarch command
+% P = 1;    % Model order P (P = length of Alpha).
+% Q = 1;    % Model order Q (Q = length of Beta).
+% [k, a, b] = ugarch(a_sp , P , Q);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%obtain fitted conditional variance
+
+[lnf, sigma2] = garch_condlh_norm21(theta, a_sp);
+
