@@ -1,0 +1,16 @@
+function [lnf, epsilon, T] = tse_condlh(theta, c, q);
+
+tmp=size(c);
+T = tmp(1,1);
+
+epsilon = zeros(T+q,1);
+one = ones(1,T);
+
+for i=(q+1):(T+q)
+    epsilon(i,1) = c(i-q,2) - theta(1) - theta(2)*c(i-q,1) + theta(3)*epsilon(i-1);
+end;
+
+
+lnf_max = -T/2*(log(2*pi) + log(theta(4))) - (one*(epsilon((q+1):(T+q)).^2))/(2*theta(4));
+
+lnf = -lnf_max; 
