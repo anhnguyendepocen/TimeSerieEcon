@@ -1,0 +1,59 @@
+clear all;
+clc;
+
+mmm = load ('mmm9912_dtp.dat');
+T = size(mmm,1);
+
+start = 34200; %9:30 am
+ts = 60*5; %5 min interval in secs
+
+numDays = 22;
+num5MinInt = numDays*78;
+nt = zeros(num5MinInt,1); %number of trades in each 5min interval
+
+row = 1;
+day = mmm(row,1); 
+i = 1;
+while (day<=31)
+    for j = 1:78
+        k = 78*(i-1)+j;
+        lowerbound = start + (ts*(j-1));
+        upperbound = start + (ts*j);
+        while ((row <= T) && (mmm(row,1)==day) && (mmm(row,2)>=lowerbound) && (mmm(row,2)< upperbound))
+            nt(k,1) = nt(k,1)+1;
+            row = row +1;
+        end
+    end   
+    if (row <= T)
+        day = mmm(row,1);
+    else
+        day = 32;
+    end
+    i = i+1;
+end   
+ 
+
+avg5MinPrice1 = zeros(num5MinInt,1);
+
+index = 1;
+x = size(nt,1);
+sumPrices = zeros(num5MinInt,1); %sum of prices in 5 min interval
+for i = 1:x
+    if (nt(i,1)>0)
+        for j = 1 : nt(i,1)
+            sumPrices(i,1) = sumPrices(i,1)+mmm(index,3);
+            index = index +1;
+        end
+        avg5MinPrice1(i,1) = sumPrices(i,1)/nt(i);
+    end
+end
+
+%remove zeros from prices
+i = 1;
+for j = 1:num5MinInt
+    if (avg5MinPrice1(j) ~= 0)
+        avg5MinPrice(i,1) = avg5MinPrice1(j);
+        i = i+1;
+    end
+end
+avg5MinPrice
