@@ -1,0 +1,129 @@
+%Build an intergrated AR(7) and GARCH(2,1) Model for SP
+
+load('F:\Financial Econometrics\homework3\dgmsp9303.dat');
+
+r_sp = dgmsp9303(:,3);
+
+tmp=size(r_sp);
+
+p = [7];
+
+T=tmp(1,1);
+
+for i=1
+    r_t = r_sp(1+p(i):T,1);
+    r_1 = zeros((T-p(i)),p(i));
+
+    for j=1:p(i)
+         r_1(:,j) = r_sp((1+p(i)-j):(T-j),1); % create "i" regressors (lagged returns)
+    end;
+    r_1 = r_1(:,[3 5 7]);
+    x = [ones(T-p(i), 1) r_1];
+    phi = inv(x'*x)*x'*r_t;  % estimation with OLS regression
+    a_t = r_t - x*phi;  % OLS residuals
+    
+    % OLS
+    sigma_a_t_ols =((a_t'*a_t)/(T-2*p(i)-1))^0.5;  % -2p-1 accounts for reduction in sample size and the number of estimated paremeters
+    phi_var_cov_ols = (sigma_a_t_ols^2)*inv(x'*x);     % var-cov matrix of regression coefficients
+    phi_std_ols = (diag(phi_var_cov_ols)).^0.5;       % standard errors of regression coefficients
+    t_stat_ols = phi./phi_std_ols; 
+
+end;
+   
+    % Plot ACF of residuals
+
+    L_cor = 12;  % maximum acf order
+    m = L_cor;
+    df = L_cor - 3;  % number of df = maximum autocorrelation order tested - # of AR coefficients
+    [rho_a_t, Q_a_t, p_value_a_t] = acf(a_t, L_cor, m, df);
+    Q_a_t 
+    p_value_a_t
+    
+    figure(1)
+    
+    subplot(2,1,1)
+    plot( dgmsp9303(:,3))
+    title('Daily Returns of the SP 500')
+    ylabel('percent')
+    
+    subplot(2,1,2)
+    [rho_a_t, Q_a_t, p_value_a_t] = acf(a_t, L_cor, m, df);
+    title('ACF of Residuals for AR(7) for SP 500 Daily Returns')
+    Q_a_t 
+    p_value_a_t
+    
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% starting values for the parameters %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+theta0 = [0.1; 0.1; 0.1; 0.1];             
+
+%estimate garch(2,1)
+
+theta = fminsearch(@garch_condlh_norm21, theta0, optimset('TolX',1e-9), a_t);
+
+%obtain fitted conditional variance
+
+[lnf, sigma2] = garch_condlh_norm21(theta, a_t);
+
+% Use ugrach command to check garch(2,1)
+ [k, b, a] = ugarch(a_t , 1 , 2);
+ 
+  tmp = size(a_t);
+  
+  L = 12; m = L; df = m; T = tmp(1,1);
+  
+  sigma2_check = zeros(T,1); 
+
+  sigma2_check(1:2) = cov(a_t); % making starting values equal to unconditional variance
+
+for i=3:T
+    sigma2_check(i,1) = k + a(1,1)*a_t(i-1)^2 + a(2,1)*a_t(i-2)^2 + b(1,1)*sigma2_check(i-1); 
+end;
+
+eps = a_t./sqrt(sigma2);
+eps_check = a_t./sqrt(sigma2_check);
+eps2 = eps.^2;
+eps_check2 = eps_check.^2;
+
+figure(2)
+subplot(2,1,1)
+plot(sqrt(sigma2))
+title('Estimated volatility (sigma) using manual program')
+
+subplot(2,1,2)
+plot(sqrt(sigma2_check))
+title('Estimated volatility (sigma) using ugrach')
+
+figure(3)
+subplot(2,1,1)
+plot(eps)
+title('Standardized residuals, GARCH(2,1)using manually written program')
+
+subplot(2,1,2)
+plot(eps_check)
+title('Standardized residuals, GARCH(2,1)using manually written program')
+
+figure(4)
+subplot(2,1,1)
+[rho_eps, Q_eps, p_value_eps] = acf(eps(2:T), L, m, df);
+title('ACF of standardized residual; obtained with GARCH(2,1) by manually written program')
+subplot(2,1,2)
+[rho_eps_check, Q_eps_check, p_value_eps_check] = acf(eps_check(2:T), L, m, df);
+title('ACF of standardized residual; obtained with GARCH(2,1) using ugarch command')
+
+figure(5)
+subplot(2,1,1)
+[rho_eps2, Q_eps2, p_value_eps2] = acf(eps(2:T).^2, L, m, df);
+title('ACF of standardized residual squared; obtained with GARCH(2,1) by manually written program')
+subplot(2,1,2)
+[rho_eps_check2, Q_eps_check2, p_value_eps_check2] = acf(eps_check(2:T).^2, L, m, df);
+title('ACF of standardized residual squared; obtained with GARCH(2,1) by ugarch command')
+
+skew_eps = skewness(eps);
+skew_eps_check = skewness(eps_check);
+
+kurt_eps = kurtosis(eps);
+kurt_eps_check = kurtosis(eps_check);
