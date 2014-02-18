@@ -1,0 +1,65 @@
+% ARCH under normal and t-distribution
+% conditional mean is a constant
+% see Tsay(2002) p. 90 - 92: estimation ARCH(3) and ARCH(1) under normality
+% see Tsay (2005) p. 109 - 111 for estimation with updated data
+
+clear
+clear all
+load('H:\teach_fe\data\ch3\m_intc.dat')
+
+
+
+R_simple = m_intc(:,1);
+
+r = log(1+R_simple);
+
+
+%estimate ARCH(3)
+m_arch = 3; %order of ARCH process
+
+%starting 
+theta0 = [0.1; 0.1; 0.1; 0.1; 0.1];
+
+theta = fminsearch(@arch_condlh1, theta0, [], r, m_arch);
+
+m_arch1 = 1;
+theta01 = [0.1; 0.1; 0.1];
+theta1 = fminsearch(@arch_condlh, theta01, [], r, m_arch1);
+
+[lnh, epsilon] = arch_condlh1(theta1,r,m_arch1);
+%[lnh, epsilon] = arch_condlh1(theta,r,m_arch);
+
+L = 10; m = L;  df = m - m_arch; 
+figure(1)
+subplot(2,2,1)
+[rho_eps, Q_eps, p_value_eps] = acf(epsilon, L, m, df);
+title('ACF of a_t/\sigma_t')
+
+subplot(2,2,2)
+[rho_eps_abs, Q_eps_abs, p_value_eps_abs] = acf(abs(epsilon), L, m, df);
+title('abs(a_t/\sigma_t)')
+
+subplot(2,2,3)
+[rho_eps_sq, Q_eps_sq, p_value_eps_sq] = acf(epsilon.^2, L, m, df);
+title('sample acf, (a_t/\sigma_t)^2')
+
+subplot(2,2,4)
+plot(epsilon);
+title('time plot of a_t/\sigma_t')
+
+% %kurtosis of arch(1) - normal
+% kurt_arch1 = 3*((1-theta1(3)^2)/(1-3*theta1(3)^2))
+% 
+% % sample kurtosis
+% 
+% kurt_emp = kurtosis(r)
+
+v = 5;
+
+% ARCH(1) - t-distributed white noise
+theta_t_arch1 = fminsearch(@arch_condlh1_t, theta01, [], r, m_arch1, v);
+
+% ARCH(2) - t-distributed white noise
+theta02 = [0.1; 0.1; 0.1; 0.1];
+m_arch2 = 2;
+theta_t_arch2 = fminsearch(@arch_condlh1_t, theta02, [], r, m_arch2, v);
