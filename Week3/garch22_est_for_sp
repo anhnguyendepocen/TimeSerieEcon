@@ -1,0 +1,158 @@
+%Hw3 number 2 build an intergrated conditional mean and conditional
+%variance for SP Composite Series and use to forecast.
+
+clear;
+clear all;
+
+%Build an intergrated AR(7) and GARCH(2,2) Model for SP
+
+load('F:\Financial Econometrics\homework3\dgmsp9303.dat');
+
+r_sp = dgmsp9303(:,3);
+
+tmp=size(r_sp);
+
+p = [7];
+
+T=tmp(1,1);
+
+for i=1
+    r_t = r_sp(1+p(i):T,1);
+    r_1 = zeros((T-p(i)),p(i));
+
+    for j=1:p(i)
+         r_1(:,j) = r_sp((1+p(i)-j):(T-j),1); % create "i" regressors (lagged returns)
+    end;
+    r_1 = r_1(:,[3 5 7]);
+    x = [ones(T-p(i), 1) r_1];
+    phi = inv(x'*x)*x'*r_t;  % estimation with OLS regression
+    a_t = r_t - x*phi;  % OLS residuals
+    
+end;
+   
+    % Plot ACF of residuals
+
+    L_cor = 12;  % maximum acf order
+    m = L_cor;
+    df = L_cor - 3;  % number of df = maximum autocorrelation order tested - # of AR coefficients
+    [rho_a_t, Q_a_t, p_value_a_t] = acf(a_t, L_cor, m, df);
+    Q_a_t 
+    p_value_a_t
+    
+    figure(1)
+    
+    subplot(2,1,1)
+    plot( dgmsp9303(:,3))
+    title('Daily Returns of the SP Composite')
+    ylabel('percent')
+    
+    subplot(2,1,2)
+    [rho_a_t, Q_a_t, p_value_a_t] = acf(a_t, L_cor, m, df);
+    title('ACF of Residuals for AR(7) for SP Composite Daily Returns')
+    Q_a_t 
+    p_value_a_t
+    
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% starting values for the parameters %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+theta0 = [0.1; 0.1; 0.1; 0.1; 0.1];             
+
+%estimate garch(2,2)
+
+theta = fminsearch(@garch_condlh_norm22, theta0, optimset('TolX',1e-9), a_t);
+
+%obtain fitted conditional variance
+
+[lnf, sigma2] = garch_condlh_norm22(theta, a_t);
+
+% Use ugrach command to check garch(2,2)
+ [k, b, a] = ugarch(a_t , 2 , 2);
+ 
+  tmp = size(a_t);
+  
+  L = 12; m = L; df = m-4; T = tmp(1,1);
+  
+  sigma2_check = zeros(T,1); 
+
+  sigma2_check(1:2) = cov(a_t); % making starting values equal to unconditional variance
+
+for i=3:T
+    sigma2_check(i,1) = k + a(1,1)*a_t(i-1)^2 + a(2,1)*a_t(i-2)^2 + b(1,1)*sigma2_check(i-1) + b(2,1)*sigma2(i-2); 
+end;
+
+a_t_s = a_t./sqrt(sigma2);
+a_t_s_check = a_t./sqrt(sigma2_check);
+a_t= a_t_s.^2;
+a_t_s_check2 = a_t_s_check.^2;
+
+figure(2)
+subplot(2,1,1)
+plot(sigma2)
+title('Estimated volatility (sigma2) using manual program')
+
+subplot(2,1,2)
+plot(sigma2_check)
+title('Estimated volatility (sigma2) using ugrach')
+
+figure(3)
+subplot(2,1,1)
+plot(a_t_s)
+title('Standardized residuals, GARCH(2,2)using manually written program')
+
+subplot(2,1,2)
+plot(a_t_s_check)
+title('Standardized residuals, GARCH(2,2)using manually written program')
+
+figure(4)
+subplot(2,1,1)
+[rho_a_t_s, Q_a_t_s, p_value_a_t_s] = acf(a_t_s(2:T), L, m, df);
+title('ACF of standardized residual; obtained with GARCH(2,2) by manually written program')
+subplot(2,1,2)
+[rho_a_t_s_check, Q_a_t_s_check, p_value_a_t_s_check] = acf(a_t_s_check(2:T), L, m, df);
+title('ACF of standardized residual; obtained with GARCH(2,2) using ugarch command')
+
+figure(5)
+subplot(2,1,1)
+[rho_a_t_s2, Q_a_t_s2, p_value_a_t_s2] = acf(a_t_s(2:T).^2, L, m, df);
+title('ACF of standardized residual squared; obtained with GARCH(2,2) by manually written program')
+subplot(2,1,2)
+[rho_a_t_s_check2, Q_a_t_s_check2, p_value_a_t_s_check2] = acf(a_t_s_check(2:T).^2, L, m, df);
+title('ACF of standardized residual squared; obtained with GARCH(2,2) by ugarch command')
+
+skew_a_t_s = skewness(a_t_s);
+skew_a_t_s_check = skewness(a_t_s_check);
+
+kurt_a_t_s = kurtosis(a_t_s);
+kurt_a_t_s_check = kurtosis(a_t_s_check);
+
+
+%Build a forcast model for GARCH (2,2) above, derivation attached
+
+h = 2760; %Horizon or orginal point of forecast
+periods = 5 %Number of steps ahead
+sigma2_hat = zeros(periods,1);
+
+sigma2_hat_1 = theta(1,1) + sigma2(h,1)*(theta(2,1) + theta(4,1)) + sigma2(h-1,1)*(theta(3,1) + theta(5,1));
+sigma2_hat_2 = theta(1,1) + sigma2_hat(1)*(theta(2,1) + theta(4,1)) + sigma2(h-1,1)*(theta(3,1) + theta(5,1));
+
+for t = 3:periods;
+sigma2_hat(t) = theta(1,1) + sigma2_hat(t-1)*(theta(2,1) + theta(4,1)) + sigma2_hat(t-2)*(theta(3,1) + theta(5,1));
+end;
+
+sigma2_hat(1,:) = [];
+sigma2_hat(1,:) = [];
+
+sigma2_hat = [sigma2_hat_1; sigma2_hat_2; sigma2_hat];
+
+figure(6)
+plot(sigma2_hat,'*')
+hold on
+plot(sigma2(h:h+4,1),'.');
+h = legend('own code','actual values',3);
+xlabel('Steps');
+ylabel('Forecast');
+title('Graph 7: 1-5 steps ahead forecast at h(2760) using own code')
+hold off
