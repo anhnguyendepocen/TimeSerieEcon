@@ -1,0 +1,71 @@
+% 1-step to 6-step ahead forecast with AR(5) model
+% see Tsay (2002), p.41 (here - simple returns, not log returns)
+% and Tsay (2005) p. 49
+
+% L - forecast horizon (the number of periods ahead)
+% p - order of the data-generating AR(p) process
+
+clear;
+clear all;
+load('F:\Financial Econometrics\Homework2\m_decile1510.dat')
+
+m_decile5=m_decile1510(:,4);
+
+tmp=size(m_decile5);
+T = tmp(1,1);
+
+%Caution!!! this code only works for L <= p+1; needs to be generalized 
+% the problem is in phi((2:i),1)
+
+L = 9;                      %forecast horizon
+
+% modify the original data set by leaving out the last L observations
+% and estimate AR(1) model using the modified data set (in-sample fit)
+
+%sample = m_decile5(1:(T-L),1);
+T_sample = T - L;
+
+p = 8;          % AR order.
+
+%--------------------------------------------------------------------------
+% this part is just OLS re-estimation ommiting the last L observations of 
+% the sample 
+r_t = m_decile5((1+p):T_sample, 1);
+r_1 = zeros((T_sample - p), p);
+
+for j=1:p
+        r_p(:,j) = m_decile5((1+p-j):(T_sample-j),1); % create "i" regressors (lagged returns)
+    end;
+    
+x = [ones(T_sample-p, 1) r_p];
+phi = inv(x'*x)*x'*r_t;  % estimation with OLS regression or, equivalently, with conditional maximum likelihood
+eps = r_t - x*phi;  % OLS residuals
+sigma_eps =((eps'*eps)/(T-2*p-1))^0.5;  % -2p-1 accounts for reduction in sample size and the number of estimated paremeters
+
+var_eh = zeros(L,1);
+var_eh(1) = sigma_eps^2;
+%--------------------------------------------------------------
+
+r_hat = zeros(L,1);  %forecast
+
+r_hat(1) = phi(1) + phi(2:(p+1))'*m_decile5((T_sample - p + 1):T_sample);
+for i = 2:L
+    if i <= p
+        indicator = 1;
+    else indicator = 0;
+    end
+    r_hat(i) = phi(1) + phi(2:i,1)'*flipud(r_hat(1:(i-1),1)) + indicator.*phi((i+1):(p+1),1)'*m_decile5((T_sample - p + i):T_sample,1); 
+    var_eh(i) = phi((2:i),1)'*flipud(var_eh(1:(i-1),1)) + sigma_eps^2;
+end;
+
+r_hat
+
+figure(3)
+plot((T - 14):1:T, m_decile5((T - 14):T, 1), '-*', (T - L+1):1:T, r_hat, 'ok', (T - L):1:T, [m_decile5(T-L) r_hat'], '-r');
+h = legend('observed','forecasted',2);
+hold on
+plot((T - L):1:T, [m_decile5(T-L) 2*sqrt(var_eh)'], '.-.b', (T - L):1:T, [m_decile5(T-L)  -2*sqrt(var_eh)'], '.-.b')
+hold off
+title('1 to 2 step ahead forecasts of mdecile5 with AR(8) model')
+xlabel('Observation Number')
+ylabel('Simple Return of mdecile5')
