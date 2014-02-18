@@ -1,0 +1,45 @@
+%Problem set 2 number 4 part2: OLS estimates without a constant;
+
+clear;
+clear all;
+%Set the number of observations and repetitions%
+n=500;
+nreps=10000;
+phi_hat_1=zeros(1,nreps);
+t_stat_phi_hat_1=zeros(1,nreps);
+%Create nreps number of vectors of ols estimators for first equation% 
+for t=1:nreps;
+rho = zeros(n,1);
+for i = 2:n,
+%create a stand normal vector of epsilon%
+eps = randn(n,1);
+rho(i,:) = eps(i,:)+rho(i-1,:);
+s_2=var(eps);
+%Estimate parameters by OLS method without a constant%
+rho_1=rho(1:499,1);
+X=rho_1;
+Y=rho(2:500,1);
+phiols=inv(X'*X)*X'*Y;
+phiols_1=phiols;
+%Estimate variance covariance matrix of phiols%
+var_phiols=s_2*inv(X'*X);
+%Obtain the t-stat second parameter for hypothesized value of 1, phiols_1%
+var_phiols_1=var_phiols;
+std_error_1=sqrt(var_phiols_1);
+t_stat=(phiols_1-1)/std_error_1;
+%Store the repetitions%
+phi_hat_1(:,t)=phiols_1;
+t_stat_phi_hat_1(:,t)=t_stat;
+end;
+end;
+%plot phi_hat_1%
+figure(1)
+hist(phi_hat_1);
+title('Distribution of phihat1 without a constant');
+ylabel('phihat1');
+
+%plot t_stat_phi_hat_1%
+figure(2)
+hist(t_stat_phi_hat_1);
+title('Distribution of t-statistics for phihat1 without a constant');
+ylabel('t-stats');
