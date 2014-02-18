@@ -1,0 +1,75 @@
+% ACF - auto correlation function for m_decile_10, hw 2.4
+%L - maximum auto-correlation order
+%m, (1xdim_m)-auto-correlation order for which the Ljung&Box stat,Q is
+%computed
+%df - number of degrees of freedom used to find the p-value corresponding
+%to the value of the of Ljung&Box statistic
+
+
+clear;
+clear all;
+
+load('F:\Financial Econometrics\homework2\m_decile1510.dat');
+L=12;
+
+m_decile_10=m_decile1510(:,4);
+
+tmp=size(m_decile_10);
+T=tmp(1,1);
+
+r_m=mean(m_decile_10);
+den=(m_decile_10-r_m)'*(m_decile_10-r_m)
+
+
+ind = zeros(L+1,1);
+rho = zeros(L+1,1);
+rho(1,1) = 1;
+
+for t=1:L
+    r = m_decile_10((1+t):T,1);    
+    r_t = m_decile_10(1:(T-t),1);  
+    num = (r - r_m)'*(r_t - r_m);  
+    rho(t+1) = num/den;
+    ind(t) = t-1;
+end;
+
+ind(L+1,1)=L;
+
+figure(1)
+bar(ind,rho,0.5)
+hold on 
+plot (ind, 2/sqrt(T))
+plot (ind, -2/sqrt(T))
+hold off
+title('Autocorrelation Function for mdecile10 Simple Returns')
+xlabel('lag')
+ylabel('acf')
+
+
+m=1:12;
+tmp1 = size(m);
+dim_m = tmp1(1,2);
+Q = zeros(1,dim_m);
+p_value = zeros(1,dim_m);
+for k = 1:dim_m
+    tmp = zeros(m(k),1);
+    one = ones(m(k),1);
+    for j=2:(m(k)+1)
+        tmp(j-1) = rho(j)^2/(T-j);        
+        Q(k) = T*(T+2)*(tmp'*one);  
+end;
+end; 
+
+%Compute the PACF;
+[PartialACF,Lags,Bounds] = parcorr(m_decile_10,12,2);
+[Lags,PartialACF];
+%Plot the PACF function;
+figure(2)
+bar(ind,PartialACF,0.5)
+hold on 
+plot (ind, 2/sqrt(T))
+plot (ind, -2/sqrt(T))
+hold off
+title('Partial Autocorrelation Function for mdecile10 Simple Returns')
+xlabel('lag')
+ylabel('partial acf')
