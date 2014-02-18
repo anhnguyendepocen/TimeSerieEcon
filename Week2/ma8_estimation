@@ -1,0 +1,39 @@
+% MA(8) model estimation
+
+clear;
+clear all;
+load('F:\Financial Econometrics\Homework2\m_decile1510.dat')
+m_decile5=m_decile1510(:,3);
+
+
+% plot sample ACF of returns
+
+L=12; m=10; df=L;
+
+figure(1)
+[rho_4, Q_4, p_value_4] = acf(m_decile5, L, m, df);
+title('ACF of Simple Returns of mdecile5 ');
+
+q = 8;    % order of MA(q) model
+
+% starting values
+
+theta0 = [0.1; 0.1; 0.1; 0.1];
+
+% use fminsearch procedure from the MATLAB optimization tool-box to
+% minimize minus log-likelihood function "ma8_condlh". This program will
+% call the file "ma9_condlh.m" saved in the same directory.
+
+[theta,fval,exitflag,output] = fminsearch(@ma8_condlh, theta0, [], m_decile5, q)
+
+
+% call ma8_condlh again (now plugging in the estimates of parameters) 
+% to retrieve fitted residuals 
+[lnh, epsilon] = ma8_condlh(theta, m_decile5, q);
+
+% plot ACF of fitted residuals
+
+figure(2)
+df1 = m; 
+[rho_epsilon, Q_epsilon, p_value_epsilon] = acf(epsilon, L, m, df1);
+title('ACF of Fitted Residuals; MA(8) Model; Simple Returns of mdecile5');
