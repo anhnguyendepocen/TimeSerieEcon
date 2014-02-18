@@ -1,0 +1,44 @@
+%Number 2 hw3, check for ARCH effect for SP Composite
+
+clear;
+clear all;
+
+
+load('F:\Financial Econometrics\homework3\dgmsp9303.dat');
+
+r_sp = dgmsp9303(:,3);
+at2 = (r_sp - mean(r_sp)*ones(2772,1)).^2;
+
+T = 2772;
+% Check for autocorrelation and ARCH effect
+
+L = 10, df = 10, m = 10;
+
+figure(1)
+subplot(3,1,1)
+[rho_, Q_r_sp, p_value_r_sp] = acf(r_sp, L, m, df);
+title('ACF of SP Composite Daily Returns')
+Q_r_sp 
+p_value_r_sp
+
+subplot(3,1,2)
+[rho_, Q_at2, p_value_at2] = acf(at2, L, m, df);
+title('ACF of SP Composite Daily Returns Mean Residuals Squared')
+Q_at2 
+p_value_at2
+
+%Compute the PACF;
+[PartialACF,Lags,Bounds] = parcorr(r_sp,10,2);
+[Lags,PartialACF];
+
+%Plot the PACF function;
+ind = (0:1:10)
+subplot(3,1,3)
+bar(ind,PartialACF,0.5)
+hold on 
+plot (ind, 2/sqrt(T))
+plot (ind, -2/sqrt(T))
+hold off
+title('Partial Autocorrelation Function SP Composite')
+xlabel('lag')
+ylabel('partial acf')
