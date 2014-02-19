@@ -1,0 +1,22 @@
+% GARCH(1,1) conditional likelihood (under t-distribution)
+% conditional mean is a constant, theta(1)
+% T - sample size.
+% v - number of degrees of freedom for t-distribution
+
+function [lnf, sigma2] = garch_cont(thetat, a_t);
+
+%tmp=size(a_t);
+%T = tmp(1,1);
+T = size(a_t,1);
+v = thetat(4);
+one = ones(1,T-1);
+sigma2 = zeros(T,1); 
+sigma2(1) = cov(a_t); % making starting values equal to unconditional variance
+
+for i=2:T
+    sigma2(i,1) = thetat(1) + thetat(2)*sigma2(i-1) + thetat(3)*a_t(i-1)^2; 
+end;
+
+eps = a_t(2:T)./sqrt(sigma2(2:T));
+lnf_max = (T-1)*(log(gamma(((v+1)/2))-log(gamma(v/2)-0.5*log((v-2))*pi)))- one*(0.5*(v+1)*log(1 + (a_t((2):(T)).^2)./((v-2)*sigma2((2):T)))+0.5*log(sigma2((2):T)));
+lnf = -lnf_max; 
