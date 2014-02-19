@@ -1,0 +1,27 @@
+%Homework 6 number 3, 9.1 in Tsay(05) page 440;
+
+clc;
+clear all;
+load('F:\Financial Econometrics\Homework6\mmrk2vw.dat');
+%Data here is log-returns in percentage;
+data = mmrk2vw';
+tmp=size(data);
+T = tmp(1,2);   % number of columns
+K = tmp(1,1);   % number of rows
+
+% MATLAB command "pcacov" performs pca of cov matrix. To carry out pca of the
+% correlation matrix, standardize the observations  
+% latent - kx1 vector of eigenvalues
+% explained - kx1 vector of eigenvalue_i/(sum of eigenvalues)
+% for more information see MATLAB help notes on "pcacov"
+
+%PCA using sample covariance matrix;
+covdata = cov(data');
+[eigenvectors_cov, latent_cov, explained_cov] = pcacov(covdata);
+
+%PCA using sample correlation matrix
+%corrdata = covdata./(stddata*stdata')),where stddata =
+%sqrt(diag(covdata)), in place of covdata;
+stddata = sqrt(diag(covdata));
+corrdata = covdata./(stddata*stddata');
+[eigenvectors_corr, latent_corr, explained_corr] = pcacov(corrdata)
