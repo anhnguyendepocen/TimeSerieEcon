@@ -1,0 +1,386 @@
+clc;
+clear;
+
+load('C:\Financial\mspibmhpq6203');
+SP = data(:,2);
+IBM = data(:,3);
+GE = data(:,4);
+Aaa = data(:,5);
+Baa = data(:,6);
+Spread = data(:,7);
+Lincgrowth = data(:,8);
+
+%Conditional betas using condition means, variances and covariances
+%Conditional mean for Aaa, Spread, IBM, GE, SP 
+
+data = [Aaa Spread IBM GE SP];
+data = data';
+tmp=size(data);
+T = tmp(1,2);   % number of columns
+K = tmp(1,1);   % number of rows
+
+L = 10; % # of cross-correlation matrices (K-by-K each)
+
+data_m = (mean(data'))';  % matlab returns means of columns
+
+tmp = zeros(K,K);
+
+for t=1:T; 
+        tmp = tmp + (data(:,t) - data_m)*(data(:,t) - data_m)'; %kx1 times 1xk    
+    end;
+gamma0 = tmp/T; %varcov matrix
+D = diag(diag(sqrt(gamma0))); % kxk diagonal matrix of standard deviations
+rho0 = inv(D)*gamma0*inv(D);
+
+% L matrices of the dimension K-by-K each
+rho = zeros(K,K,L);
+gamma = zeros(K,K,L);
+
+tmpq = 0;
+
+for i = 1:L
+    tmp = zeros(K,K);
+    for t=(i+1):T; 
+        tmp = tmp + (data(:,t)- data_m)*(data(:,t-i)- data_m)'; %kx1 times 1xk    
+    end;
+gamma(:,:,i) = tmp/T; %cross-cov matrix
+rho(:,:,i) = inv(D)*gamma(:,:,i)*inv(D);
+tmpq = tmpq + (1/(T-i))*trace(gamma(:,:,i)'*inv(gamma0)*gamma(:,:,i)*inv(gamma0));
+end;
+
+Q = tmpq*T*T;  % Q_K(L) - multivariate Portmanteau test statistic of L'th order 
+
+p_val = 1 - chi2cdf(Q,K*K*L)
+
+%Use lrratio to perform a likelyhood ratio test for VAR model
+lrratio(data',10,1);
+
+% bivariate VAR(3) ran for Aaa and SP log-returns in percentage using vare procedure from 
+% the "Spatial Econometrics" toolbox, by LaSage
+vnames = strvcat('Aaa','Spread','IBM','GE','SP');
+nlag = 3;
+res = vare(data',nlag);
+prt(res, vnames);
+beta1 = res(1).beta;
+beta2 = res(2).beta;
+tprob1 = res(1).tprob;
+tprob2 = res(2).tprob;
+sigbeta1 = tprob1<=0.05;
+sigbeta2 = tprob2<=0.05;
+sigbeta = [beta1 tprob1 sigbeta1 beta2 tprob2 sigbeta2];
+
+% OLS without using the toolbox, implementation of Hamilton (93) pp.
+% 291-293 
+dataT = data';
+y = dataT((1+nlag):T,:)';
+x = ones(1,T-nlag);
+r_1 = zeros(K,(T-nlag));
+
+    for j=1:nlag
+         r_1 = dataT((1+nlag-j):(T-j),:)'; % create k regressors (lagged returns)
+         x = [x; r_1];
+            end;
+            phi = y*(x')*inv(x*x');
+% phi(i,:) is similar to res(i).beta from the toolbox except of the
+% ordering
+
+res = y-phi*x;
+%Check for autocorrelation at the first ten lags for the residual series
+L = 10; % # of cross-correlation matrices (K-by-K each)
+
+tmp=size(res);
+T = tmp(1,2);   % number of columns
+K = tmp(1,1);   % number of rows
+
+
+res_m = (mean(res'))';  % matlab returns means of columns
+
+tmp = zeros(K,K);
+
+for t=1:T; 
+        tmp = tmp + (res(:,t) - res_m)*(res(:,t) - res_m)'; %kx1 times 1xk    
+    end;
+gamma0 = tmp/T; %varcov matrix
+D = diag(diag(sqrt(gamma0))); % kxk diagonal matrix of standard deviations
+rho0 = inv(D)*gamma0*inv(D);
+
+% L matrices of the dimension K-by-K each
+rho = zeros(K,K,L);
+gamma = zeros(K,K,L);
+
+tmpq = 0;
+
+for i = 1:L
+    tmp = zeros(K,K);
+    for t=(i+1):T; 
+        tmp = tmp + (res(:,t)- res_m)*(res(:,t-i)- res_m)'; %kx1 times 1xk    
+    end;
+gamma(:,:,i) = tmp/T; %cross-cov matrix
+rho(:,:,i) = inv(D)*gamma(:,:,i)*inv(D);
+tmpq = tmpq + (1/(T-i))*trace(gamma(:,:,i)'*inv(gamma0)*gamma(:,:,i)*inv(gamma0));
+end;
+
+Q_res = tmpq*T*T;  % Q_K(L) - multivariate Portmanteau test statistic of L'th order 
+p_val_res = 1 - chi2cdf(Q_res,K*K*L)
+y_hat = phi*x;
+
+E_Aaa_con = y_hat(1,:)';
+E_Spread_con = y_hat(2,:)';
+E_IBM_con = y_hat(3,:)';
+E_GE_con = y_hat(4,:)';
+E_SP_con = y_hat(5,:)';
+
+Ave_E_Aaa_con = zeros(501,1);
+Ave_E_Spread_con = zeros(501,1);
+Ave_E_IBM_con = zeros(501,1);
+Ave_E_GE_con = zeros(501,1);
+Ave_E_SP_con = zeros(501,1);
+
+for t = 1:501
+    Ave_E_Aaa_con(t) = mean(E_Aaa_con(1:t));
+    Ave_E_Spread_con(t) = mean(E_Spread_con(1:t));
+    Ave_E_IBM_con(t) = mean(E_IBM_con(1:t));
+    Ave_E_GE_con(t) = mean(E_GE_con(1:t));
+    Ave_E_SP_con(t) = mean(E_SP_con(1:t));
+end;    
+
+%Conditional Covariances for IBM and GE verus SP
+
+resIBM_SP = [res(3,:);res(5,:)]';
+resGE_SP = [res(4,:);res(5,:)]';
+
+%Conditional betas for IBM SP
+[parameters_IBM_SP, loglikelihood, Ht_IBM_SP, likelihoods, stdresid_IBM_SP, stderrors, A, B, scores]  = full_bekk_mvgarch(resIBM_SP,1,1);
+cov_con_IBM_SP = Ht_IBM_SP(1,2,:);
+var_SP1_con = Ht_IBM_SP(2,2,:);
+var_IBM_con = Ht_IBM_SP(1,1,:);
+
+%Conditioal betas for GE SP
+[parameters_GE_SP, loglikelihood, Ht_GE_SP, likelihoods, stdresid_GE_SP, stderrors, A, B, scores]  = full_bekk_mvgarch(resGE_SP,1,1);
+cov_con_GE_SP = Ht_GE_SP(1,2,:);
+var_SP2_con = Ht_GE_SP(2,2,:);
+var_GE_con = Ht_GE_SP(1,1,:);
+
+cov_con_IBM_SP_new = zeros(501,1);
+cov_con_GE_SP_new = zeros(501,1);
+var_IBM_con_new = zeros(501,1);
+var_GE_con_new = zeros(501,1);
+var_SP1_con_new = zeros(501,1);
+var_SP2_con_new = zeros(501,1);
+
+for t = 1:501
+    cov_con_IBM_SP_new(t) = cov_con_IBM_SP(1,1,t);
+    cov_con_GE_SP_new(t) = cov_con_GE_SP(1,1,t);
+    var_IBM_con_new(t) = var_IBM_con(1,1,t);
+    var_GE_con_new(t) = var_GE_con(1,1,t);
+    var_SP1_con_new(t) = var_SP1_con(1,1,t);
+    var_SP2_con_new(t) = var_SP2_con(1,1,t);
+end;
+
+E_beta_con_IBM_SP = cov_con_IBM_SP_new./var_SP1_con_new;
+E_beta_con_GE_SP = cov_con_GE_SP_new./var_SP2_con_new;
+
+Ave_E_beta_con_IBM_SP = zeros(501,1);
+Ave_E_beta_con_GE_SP = zeros(501,1);
+
+for t = 1:501
+    Ave_E_beta_con_IBM_SP(t) = mean(E_beta_con_IBM_SP(1:t));
+    Ave_E_beta_con_GE_SP(t) = mean(E_beta_con_GE_SP(1:t));
+end;
+
+for t = 1:501
+        sumproductE_beta_con_IBM_SP_E_Spread_con(t) = (E_beta_con_IBM_SP(1:t))'*E_Spread_con(1:t);
+        sumproductE_beta_con_GE_SP_E_Spread_con(t) = (E_beta_con_GE_SP(1:t))'*E_Spread_con(1:t);
+end;
+
+cov_E_beta_con_IBM_SP_E_Spread_con = zeros(501,1);
+cov_E_beta_con_GE_SP_E_Spread_con = zeros(501,1);
+
+for t = 2:501
+    cov_E_beta_con_IBM_SP_E_Spread_con(t) = (1/(t-1))*(sumproductE_beta_con_IBM_SP_E_Spread_con(t)-(Ave_E_beta_con_IBM_SP(t)*Ave_E_Spread_con(t)*t));
+    cov_E_beta_con_GE_SP_E_Spread_con(t) = (1/(t-1))*(sumproductE_beta_con_GE_SP_E_Spread_con(t)-(Ave_E_beta_con_GE_SP(t)*Ave_E_Spread_con(t)*t));
+end;
+
+E_rt_ibm_con = Ave_E_Aaa_con + Ave_E_Spread_con.*Ave_E_beta_con_IBM_SP + cov_E_beta_con_IBM_SP_E_Spread_con;
+E_rt_ge_con = Ave_E_Aaa_con + Ave_E_Spread_con.*Ave_E_beta_con_GE_SP + cov_E_beta_con_GE_SP_E_Spread_con;
+
+GE(1:96,:)=[];
+E_rt_ibm_con(1:93,:)=[];
+E_rt_ge_con(1:93,:)=[];
+IBM(1:96,:)=[];
+cov_con_IBM_SP_new(1:93,:)=[];
+cov_con_GE_SP_new(1:93,:)=[];
+var_IBM_con_new(1:93,:)=[];
+var_GE_con_new(1:93,:)=[];
+var_SP1_con_new(1:93,:)=[];
+var_SP2_con_new(1:93,:)=[];
+cov_E_beta_con_GE_SP_E_Spread_con(1:93,:)=[];
+cov_E_beta_con_IBM_SP_E_Spread_con(1:93,:)=[];
+
+
+%Plots for conditional CAPM
+figure(1)
+subplot(2,1,1)
+plot(GE,E_rt_ge_con,'*')
+xlabel('Actual')
+ylabel('CAPM')
+title('GE realized and conditional CAPM returns')
+subplot(2,1,2)
+plot(IBM,E_rt_ibm_con,'*')
+xlabel('Actual')
+ylabel('CAPM')
+title('IBM realized and conditional CAPM returns')
+
+figure(2)
+plot(GE,'*')
+hold on
+plot(E_rt_ge_con,'r--');
+h = legend('Actual GE','Conditional CAPM GE',3);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Log Returns');
+ylabel('Year');
+title('GE realized and conditional CAPM returns')
+hold off
+
+figure(3)
+plot(IBM,'*')
+hold on
+plot(E_rt_ibm_con,'r--');
+h = legend('Actual IBM','Conditional CAPM IBM',3);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Log Returns');
+ylabel('Year');
+title('IBM realized and conditional CAPM returns')
+hold off
+
+E_Aaa_con = y_hat(1,:)';
+E_Spread_con = y_hat(2,:)';
+E_IBM_con = y_hat(3,:)';
+E_GE_con = y_hat(4,:)';
+E_SP_con = y_hat(5,:)';
+E_Aaa_con(1:93,:)=[];
+E_Spread_con(1:93,:)=[];
+E_IBM_con(1:93,:)=[];
+E_GE_con(1:93,:)=[];
+E_SP_con(1:93,:)=[];
+E_Spread_con(1:93,:)=[];
+E_beta_con_IBM_SP(1:93,:)=[];
+E_beta_con_GE_SP(1:93,:)=[];
+
+
+figure(4)
+subplot(2,1,1)
+plot(E_Aaa_con,'-.')
+hold on
+plot(E_Spread_con,'--');
+h = legend('Aaa','Risk Premium',1);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year');
+ylabel('Log Returns');
+title('Conditional Returns obtained by VAR')
+hold off
+
+subplot(2,1,2)
+plot(E_IBM_con,'bh');
+hold on
+plot(E_GE_con,'g.');
+plot(E_SP_con,'r');
+h = legend('IBM','GE','SP500' ,3);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year');
+ylabel('Log Returns');
+title('Conditional Returns obtained by VAR')
+hold off
+
+figure(5)
+subplot(3,1,1)
+plot(cov_con_GE_SP_new);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+ylabel('Conditional Covariances')
+
+
+subplot(3,1,2)
+plot(var_SP2_con_new);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+ylabel('Conditional Variances S&P')
+
+
+subplot(3,1,3)
+plot(var_GE_con_new);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+ylabel('Conditional Variances GE')
+
+
+
+figure(6)
+subplot(3,1,1)
+plot(cov_con_IBM_SP_new);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+ylabel('Conditional Covariances')
+
+
+subplot(3,1,2)
+plot(var_SP1_con_new);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+ylabel('Conditional Variances S&P')
+
+
+subplot(3,1,3)
+plot(var_IBM_con_new);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+ylabel('Conditional Variances IBM')
+
+figure (7)
+subplot(2,1,1)
+plot(cov_E_beta_con_GE_SP_E_Spread_con)
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+title('Covariances between Expected Risk Premia and GE Conditional Betas')
+
+subplot(2,1,2)
+plot(cov_E_beta_con_IBM_SP_E_Spread_con)
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+title('Covariances between Expected Risk Premia and IBM Conditional Betas')
+
+figure (8)
+subplot(3,1,1)
+plot(E_Aaa_con)
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+title('Expected Risk Premia')
+
+
+subplot(3,1,2)
+plot(E_beta_con_IBM_SP)
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+title('Conditional Betas for IBM')
+
+subplot(3,1,3)
+plot(E_beta_con_GE_SP)
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Year')
+title('Conditional Betas for GE')
+
