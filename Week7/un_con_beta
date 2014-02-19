@@ -1,0 +1,111 @@
+clc;
+clear;
+
+load('F:\Financial Econometrics\Research\mspibmhpq6203');
+%Unconditional Beta for IBM and GE versus SP
+SP = data(:,2);
+IBM = data(:,3);
+GE = data(:,4);
+Aaa = data(:,5);
+Baa = data(:,6);
+Spread = data(:,7);
+Labor = data(:,8);
+
+var_sp = zeros(504,1);
+var_ibm = zeros(504,1);
+var_ge = zeros(504,1);
+for t = 1:504
+    var_sp(t) = var(SP(1:t));
+    var_ibm(t) = var(IBM(1:t));
+    var_ge(t) = var(GE(1:t));
+end;
+aveSP = zeros(504,1);
+sumproductSPIBM = zeros(504,1);
+aveIBM = zeros(504,1);
+for t = 2:504
+    sumproductSPIBM(1)= SP(1)*IBM(1);
+    sumproductSPIBM(t) = (SP(1:t,1))'*IBM(1:t,1);
+    aveSP(1)= SP(1);
+    aveSP(t) = mean(SP(1:t));
+    aveIBM(1)= IBM(1);
+    aveIBM(t) = mean(IBM(1:t));
+end;
+cov_sp_ibm = zeros(504,1);
+for t = 2:504
+    cov_sp_ibm(t) = (1/(t-1))*(sumproductSPIBM(t)-(aveSP(t)*aveIBM(t))*t);
+end;
+
+aveGE = zeros(504,1);
+sumproductSPGE = zeros(504,1);
+for t = 2:504
+    sumproductSPGE(1)= SP(1)*GE(1);
+    sumproductSPGE(t) = (SP(1:t,1))'*GE(1:t,1);
+    aveSP(1)= SP(1);
+    aveSP(t) = mean(SP(1:t));
+    aveGE(1)= GE(1);
+    aveGE(t) = mean(GE(1:t));
+    end;
+cov_sp_ge = zeros(504,1);
+for t = 2:504
+    cov_sp_ge(t) = (1/(t-1))*(sumproductSPGE(t)-(aveSP(t)*aveGE(t))*t);
+end;
+beta_sp_ge = cov_sp_ge./var_sp;
+beta_sp_ibm = cov_sp_ibm./var_sp;
+
+aveAaa = zeros(504,1);
+aveSpread = zeros(504,1);
+for t = 2:504
+aveSpread(1) = Spread(1);
+aveSpread(t) = mean(Spread(1:t));
+aveAaa(1) = Aaa(1);
+AveAaa(t) = mean(Aaa(1:t));
+end;
+
+%Use unconditional CAPM to get expected return for IBM and GE
+%GE
+E_rt_ge_uncon = aveAaa + beta_sp_ge.*(aveSpread);
+GE(1:96,:)=[];
+E_rt_ge_uncon(1:96,:)=[];
+
+%IBM
+Aaa = data(:,5);
+E_rt_ibm_uncon = aveAaa + beta_sp_ibm.*(aveSpread);
+IBM(1:96,:)=[];
+E_rt_ibm_uncon(1:96,:)=[];
+
+%Plots for unconditional CAPM
+figure(1)
+subplot(2,1,1)
+plot(GE,E_rt_ge_uncon,'*')
+xlabel('Actual')
+ylabel('CAPM')
+title('GE realized and unconditional CAPM returns')
+subplot(2,1,2)
+plot(IBM,E_rt_ibm_uncon,'*')
+xlabel('Actual')
+ylabel('CAPM')
+title('IBM realized and unconditional CAPM returns')
+
+figure(2)
+plot(GE,'*')
+hold on
+plot(E_rt_ge_uncon,'r--');
+h = legend('Actual GE','Unconditional CAPM GE',3);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Log Returns');
+ylabel('Year');
+title('GE realized and unconditional CAPM returns')
+hold off
+
+figure(3)
+plot(IBM,'*')
+hold on
+plot(E_rt_ibm_uncon,'r--');
+h = legend('Actual IBM','Unconditional CAPM IBM',3);
+set(gca,'XTick',1:24:408)
+set(gca,'XTickLabel', 1970:2:2003)
+xlabel('Log Returns');
+ylabel('Year');
+title('IBM realized and unconditional CAPM returns')
+hold off
