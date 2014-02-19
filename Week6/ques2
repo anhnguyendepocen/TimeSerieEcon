@@ -1,0 +1,162 @@
+%Homework #6, Problem 8.3 in Tsay(05) page 401;
+
+clear;
+clear all;
+load('F:\Financial Econometrics\Homework6\mgs1n10.dat');
+data = mgs1n10';
+%Transform data from simple percentage returns to log percentage returns
+data = data/100;
+data = (log(1+data))*100;
+
+tmp=size(data);
+T = tmp(1,2);   % number of columns
+K = tmp(1,1);   % number of rows
+
+%Check for autocorrelation at the first ten lags
+L = 10; % # of cross-correlation matrices (K-by-K each)
+
+data_m = (mean(data'))';  % matlab returns means of columns
+
+tmp = zeros(K,K);
+
+for t=1:T; 
+        tmp = tmp + (data(:,t) - data_m)*(data(:,t) - data_m)'; %kx1 times 1xk    
+    end;
+gamma0 = tmp/T; %varcov matrix
+D = diag(diag(sqrt(gamma0))); % kxk diagonal matrix of standard deviations
+rho0 = inv(D)*gamma0*inv(D);
+
+% L matrices of the dimension K-by-K each
+rho = zeros(K,K,L);
+gamma = zeros(K,K,L);
+
+tmpq = 0;
+
+for i = 1:L
+    tmp = zeros(K,K);
+    for t=(i+1):T; 
+        tmp = tmp + (data(:,t)- data_m)*(data(:,t-i)- data_m)'; %kx1 times 1xk    
+    end;
+gamma(:,:,i) = tmp/T; %cross-cov matrix
+rho(:,:,i) = inv(D)*gamma(:,:,i)*inv(D);
+tmpq = tmpq + (1/(T-i))*trace(gamma(:,:,i)'*inv(gamma0)*gamma(:,:,i)*inv(gamma0));
+end;
+
+Q = tmpq*T*T;  % Q_K(L) - multivariate Portmanteau test statistic of L'th order 
+
+p_val = 1 - chi2cdf(Q,K*K*L);
+
+%Use lrratio to perform a likelyhood ratio test for VAR model
+lrratio(data',10,1);
+
+% bivariate VAR(7) ran for 1-year and 10-year log-returns in percentage using vare procedure from 
+% the "Spatial Econometrics" toolbox, by LaSage
+vnames = strvcat('1year','10year');
+nlag = 7;
+res = vare(data',nlag);
+prt(res, vnames);
+beta1 = res(1).beta;
+beta2 = res(2).beta;
+tprob1 = res(1).tprob;
+tprob2 = res(2).tprob;
+sigbeta1 = tprob1<=0.5;
+sigbeta2 = tprob2<=0.5;
+sigbeta = [beta1 tprob1 sigbeta1 beta2 tprob2 sigbeta2];
+
+% OLS without using the toolbox, implementation of Hamilton (93) pp.
+% 291-293 
+dataT = data';
+y = dataT((1+nlag):T,:)';
+x = ones(1,T-nlag);
+r_1 = zeros(K,(T-nlag));
+
+    for j=1:nlag
+         r_1 = dataT((1+nlag-j):(T-j),:)'; % create k regressors (lagged returns)
+         x = [x; r_1];
+            end;
+            
+            phi = y*(x')*inv(x*x');
+% phi(i,:) is similar to res(i).beta from the toolbox except of the
+% ordering
+res = y-phi*x;
+%Check for autocorrelation at the first ten lags for the residual series
+L = 10; % # of cross-correlation matrices (K-by-K each)
+
+tmp=size(res);
+T = tmp(1,2);   % number of columns
+K = tmp(1,1);   % number of rows
+
+
+res_m = (mean(res'))';  % matlab returns means of columns
+
+tmp = zeros(K,K);
+
+for t=1:T; 
+        tmp = tmp + (res(:,t) - res_m)*(res(:,t) - res_m)'; %kx1 times 1xk    
+    end;
+gamma0 = tmp/T; %varcov matrix
+D = diag(diag(sqrt(gamma0))); % kxk diagonal matrix of standard deviations
+rho0 = inv(D)*gamma0*inv(D);
+
+% L matrices of the dimension K-by-K each
+rho = zeros(K,K,L);
+gamma = zeros(K,K,L);
+
+tmpq = 0;
+
+for i = 1:L
+    tmp = zeros(K,K);
+    for t=(i+1):T; 
+        tmp = tmp + (res(:,t)- res_m)*(res(:,t-i)- res_m)'; %kx1 times 1xk    
+    end;
+gamma(:,:,i) = tmp/T; %cross-cov matrix
+rho(:,:,i) = inv(D)*gamma(:,:,i)*inv(D);
+tmpq = tmpq + (1/(T-i))*trace(gamma(:,:,i)'*inv(gamma0)*gamma(:,:,i)*inv(gamma0));
+end;
+
+Q_res = tmpq*T*T;  % Q_K(L) - multivariate Portmanteau test statistic of L'th order 
+
+p_val_res = 1 - chi2cdf(Q_res,K*K*L);
+
+%Dropping the the fifth lag for 10 year-returns
+x(13,:)=[];
+phi_13 = y*(x')*inv(x*x');
+res_13 = y-phi_13*x;
+%Check for autocorrelation at the first ten lags for the residual series
+L = 10; % # of cross-correlation matrices (K-by-K each)
+
+tmp=size(res_13);
+T = tmp(1,2);   % number of columns
+K = tmp(1,1);   % number of rows
+
+
+res_13_m = (mean(res_13'))';  % matlab returns means of columns
+
+tmp = zeros(K,K);
+
+for t=1:T; 
+        tmp = tmp + (res_13(:,t) - res_13_m)*(res_13(:,t) - res_13_m)'; %kx1 times 1xk    
+    end;
+gamma0 = tmp/T; %varcov matrix
+D = diag(diag(sqrt(gamma0))); % kxk diagonal matrix of standard deviations
+rho0 = inv(D)*gamma0*inv(D);
+
+% L matrices of the dimension K-by-K each
+rho = zeros(K,K,L);
+gamma = zeros(K,K,L);
+
+tmpq = 0;
+
+for i = 1:L
+    tmp = zeros(K,K);
+    for t=(i+1):T; 
+        tmp = tmp + (res_13(:,t)- res_13_m)*(res_13(:,t-i)- res_13_m)'; %kx1 times 1xk    
+    end;
+gamma(:,:,i) = tmp/T; %cross-cov matrix
+rho(:,:,i) = inv(D)*gamma(:,:,i)*inv(D);
+tmpq = tmpq + (1/(T-i))*trace(gamma(:,:,i)'*inv(gamma0)*gamma(:,:,i)*inv(gamma0));
+end;
+
+Q_res_13 = tmpq*T*T;  % Q_K(L) - multivariate Portmanteau test statistic of L'th order 
+
+p_val_res_13 = 1 - chi2cdf(Q_res_13,K*K*L);
