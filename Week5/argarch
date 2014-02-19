@@ -1,0 +1,87 @@
+%Build a ARMA-GARCH Model for GE log returns;
+
+clc;
+clear all;
+
+
+load('F:\Financial Econometrics\Homework5\Number1\dge6299.dat');
+r = dge6299(:,2);
+lr= log(1+r);
+a2 = (lr - mean(lr)).^2;
+
+T = size(lr,1);
+L = 10, m = 10, df = 10;
+ind = (0:L);
+figure(1)
+subplot(2,1,1)
+[rho_lr, Q_lr, p_value_lr] = acf(lr, L, m, df);
+Q_lr 
+p_value_lr
+
+%Compute the PACF;
+[PartialACF,Lags,Bounds] = parcorr(lr,10,2);
+%Plot the PACF function;
+subplot(2,1,2)
+bar(ind,PartialACF,0.5)
+hold on 
+plot (ind, 2/sqrt(T))
+plot (ind, -2/sqrt(T))
+hold off
+title('PACF')
+xlabel('lag')
+ylabel('partial acf')
+
+%PACF suggests and AR(3) Model with all significant lags;
+
+p = [3];
+
+for i=1
+    lr_t = lr(1+p(i):T,1);
+    lr_1 = zeros((T-p(i)),p(i));
+
+    for j=1:p(i)
+         lr_1(:,j) = lr((1+p(i)-j):(T-j),1); % create "i" regressors (lagged returns)
+    end;
+    x = [ones(T-p(i), 1) lr_1];
+    phi = inv(x'*x)*x'*lr_t;  % estimation with OLS regression
+    a_t = lr_t - x*phi;  % OLS residuals
+    lr_tc = x*phi; 
+end;
+
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% starting values for the parameters %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%With Gaussian White Noise
+
+theta0 = [0.00001; 0.00001; 0.00001];
+
+theta = fminsearch(@garch_condlh_norm11, theta0, optimset('TolX',1e-9), a_t);
+[lnf, sigma2] = garch_condlh_norm11(theta, a_t);
+
+%One step forcast for Gaussian White Noise;
+%AR(3);
+rhat1 = phi(1)+phi(2)*lr(T)+phi(3)*lr(T-1)+phi(4)*lr(T-2);
+
+T = size(sigma2,1);
+%GARCH(1,1);
+sigma2hat1n = theta(1)+theta(2)*sigma2(T)+theta(3)*(a_t(T))^2;
+%VaR(1) Var(15)
+Var1 = -1000000*(rhat1 - 1.65*sigma2hat1n^0.5);
+Var15 = (15^0.5)*Var1;
+
+%With t-distrubuted White Noise
+
+thetat0 = [0.1;0.1;0.1;2];
+LB = [0.0001;0.0002;0.0003;1];
+UB = [1;1;1;130];
+thetat = fminsearchbnd(@garch_cont, thetat0,LB,UB,optimset('TolX',1e-9), a_t);
+[lnf, sigma2t] = garch_cont(thetat, a_t);
+
+%One step forcast for t-distribution White Noise;
+%GARCH(1,1);
+sigma2hat1t = thetat(1)+thetat(2)*sigma2t(T)+thetat(3)*(a_t(T))^2;
+%VaR(1) Var(15)
+Vart1 = -1000000*(rhat1 + 1.62*sigma2hat1t^0.5*(3.79-2)^0.5);
+Var15t = (15^0.5)*Vart1;
