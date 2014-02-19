@@ -1,0 +1,60 @@
+clear all;
+clc;
+csco = load('d-csco9199.dat');
+csco = csco(:,2);
+csco = log(1+csco);
+csco = -sort(csco);
+%csco = csco - mean(csco);
+
+q = 0.99;
+n = length(csco);
+k = 0;
+b= 1;
+x = 1;
+
+for j = 1:100
+    k = j*.001;
+    k = round(n*k);
+    tail = csco(1:k);
+    eme(j) = mean(tail);
+end
+
+plot(.001:.001:.1, eme);
+xlabel('Threshold');
+ylabel('EME');
+%suggest 5% threshold
+
+u = .02;
+k = round(n*u)
+tail = csco(1:k);
+u = csco(k+1)
+y = tail - u;
+theta0 = [.05 .05];
+theta = fminsearch(@maxlik, theta0, optimset('TolX',1e-9), y);
+xi = theta(1)
+beta = theta(2)
+VaR(1) = 1000000 * (u + beta/xi * ((n/k*(1-q))^-xi - 1));
+
+u = .025;
+k = round(n*u)
+tail = csco(1:k);
+u = csco(k+1)
+y = tail - u;
+theta0 = [.05 .05];
+theta = fminsearch(@maxlik, theta0, optimset('TolX',1e-9), y);
+xi = theta(1)
+beta = theta(2)
+VaR(2) = 1000000 * (u + beta/xi * ((n/k*(1-q))^-xi - 1));
+
+u = .03;
+k = round(n*u)
+tail = csco(1:k);
+u = csco(k+1)
+y = tail - u;
+theta0 = [.05 .05];
+theta = fminsearch(@maxlik, theta0, optimset('TolX',1e-9), y);
+xi = theta(1)
+beta = theta(2)
+VaR(3) = 1000000 * (u + beta/xi * ((n/k*(1-q))^-xi - 1));
+
+VaR
