@@ -1,0 +1,18 @@
+%Maximum MLE estimations for RiskMetrics;
+
+function [lnf, sigma2] = riskmet_con(theta, a_t);
+
+T = size (a_t,1);
+one = ones(1,T-1);
+sigma2 = zeros(T,1); 
+sigma2(1) = cov(a_t); % making starting values equal to unconditional variance
+
+for i=2:T
+    sigma2(i,1) = theta(1)*sigma2(i-1) + (1-theta(1))*a_t(i-1)^2; 
+end;
+
+eps = a_t(2:T)./sqrt(sigma2(2:T));
+
+lnf_max = -T/2*(log(2*pi)) - 0.5*(one*log(sigma2(2:T))) - one*(0.5*eps.^2);
+
+lnf = -lnf_max; 
