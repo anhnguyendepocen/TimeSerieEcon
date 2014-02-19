@@ -1,0 +1,8 @@
+%get POT parameters by maximizing log liklihood
+function lik = maxlik(theta, y);
+
+k = size(y,1);
+one = ones(1,k);
+
+lik = -k * log(theta(2))-(1 + 1/theta(1)) * one * log(1 + (theta(1)/theta(2)) * y);
+lik = -lik;
